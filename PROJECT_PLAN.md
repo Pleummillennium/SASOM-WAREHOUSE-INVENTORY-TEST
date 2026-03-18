@@ -145,13 +145,13 @@ slot_allocations → การจอง (orderId → shelf + level + slot)
 - [x] **2.4** ทดสอบว่า data ใน DB ถูกต้อง
 
 ### Phase 3 — Allocation Algorithm (Core Logic)
-- [ ] **3.1** เขียน `allocationService.ts` — logic หลัก
+- [x] **3.1** เขียน `allocationService.ts` — logic หลัก
   - เรียง order ตาม orderId (ASC)
   - แยก order ตาม category + height condition
   - จัดสรรไปยัง shelf ที่เหมาะสมตาม priority: Level → Shelf → Slot
   - track ความสูงสะสมใน Slot ปัจจุบัน
-- [ ] **3.2** Unit test algorithm ด้วย mock data เล็กๆ
-- [ ] **3.3** รัน allocation บน dataset จริง บันทึกผลลง `slot_allocations`
+- [x] **3.2** Unit test algorithm ด้วย mock data เล็กๆ (14/14 passed)
+- [x] **3.3** รัน allocation บน dataset จริง บันทึกผลลง `slot_allocations` (allocated: 7,890 / skipped: 2,110)
 
 ### Phase 4 — Backend API
 - [ ] **4.1** Setup Express app + middleware (cors, json, error handler)

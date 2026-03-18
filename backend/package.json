@@ -13,7 +13,9 @@
     "db:generate": "tsx src/scripts/generate-orders.ts",
     "db:seed-shelves": "tsx src/scripts/seed-shelves.ts",
     "db:import-orders": "tsx src/scripts/import-orders.ts",
-    "db:setup": "npm run db:migrate && npm run db:generate && npm run db:seed-shelves && npm run db:import-orders"
+    "db:setup": "npm run db:migrate && npm run db:generate && npm run db:seed-shelves && npm run db:import-orders",
+    "test:allocation": "tsx src/scripts/test-allocation.ts",
+    "allocate": "tsx src/scripts/run-allocation.ts"
   },
   "keywords": [],
   "author": "",
