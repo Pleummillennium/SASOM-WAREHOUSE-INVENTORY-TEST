@@ -162,12 +162,12 @@ slot_allocations → การจอง (orderId → shelf + level + slot)
 - [x] **4.6** ทดสอบ API ด้วย curl — ทุก endpoint ผ่าน
 
 ### Phase 5 — Frontend
-- [ ] **5.1** Layout หลัก: Sidebar + Header
-- [ ] **5.2** หน้า Dashboard — แสดง Shelf ทั้งหมด + usage overview
-- [ ] **5.3** หน้า Shelf Detail — แสดง Slot grid ของ Shelf นั้นๆ
-- [ ] **5.4** Search by Order ID — กรอก ORD00001 แล้วแสดง Shelf/Level/Slot
-- [ ] **5.5** Search by Slot ID — กรอก Shelf + Level + Slot แล้วแสดงรายการสินค้า
-- [ ] **5.6** เชื่อมต่อ API ทั้งหมดผ่าน React Query
+- [x] **5.1** Layout หลัก: Sidebar + Header
+- [x] **5.2** หน้า Dashboard — แสดง Shelf ทั้งหมด + usage overview
+- [x] **5.3** หน้า Shelf Detail — แสดง Slot grid ของ Shelf นั้นๆ
+- [x] **5.4** Search by Order ID — กรอก ORD00001 แล้วแสดง Shelf/Level/Slot
+- [x] **5.5** Search by Slot ID — กรอก Shelf + Level + Slot แล้วแสดงรายการสินค้า
+- [x] **5.6** เชื่อมต่อ API ทั้งหมดผ่าน React Query
 
 ### Phase 6 — Polish & Delivery
 - [ ] **6.1** เขียน `README.md` (setup, env, run, test)
