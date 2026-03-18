@@ -170,10 +170,10 @@ slot_allocations → การจอง (orderId → shelf + level + slot)
 - [x] **5.6** เชื่อมต่อ API ทั้งหมดผ่าน React Query
 
 ### Phase 6 — Polish & Delivery
-- [ ] **6.1** เขียน `README.md` (setup, env, run, test)
-- [ ] **6.2** ตรวจสอบ edge cases ใน allocation (slot เต็ม, level เต็ม, ไม่มี shelf ว่าง)
-- [ ] **6.3** Code cleanup + type safety check
-- [ ] **6.4** ทำ final test end-to-end
+- [x] **6.1** เขียน `README.md` (setup, env, run, test)
+- [x] **6.2** ตรวจสอบ edge cases ใน allocation (slot เต็ม, level เต็ม, ไม่มี shelf ว่าง)
+- [x] **6.3** Code cleanup + type safety check (tsc + ESLint ผ่าน 0 errors)
+- [x] **6.4** ทำ final test end-to-end — ทุก endpoint ผ่าน
 
 ---
 
