@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist } from 'next/font/google';
 import './globals.css';
+import { Toaster } from 'sonner';
 import QueryProvider from '@/components/providers/QueryProvider';
 import Sidebar from '@/components/Sidebar';
 
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Sidebar />
             <main className="flex-1 overflow-auto">{children}</main>
           </div>
+          <Toaster richColors position="top-right" />
         </QueryProvider>
       </body>
     </html>

@@ -42,6 +42,20 @@ export interface OrderLocation {
   };
 }
 
+export interface AllocationStats {
+  totalOrders: number;
+  allocated: number;
+  skipped: number;
+  byCategory: { category: string; total: number; allocated: number; skipped: number }[];
+  skippedOrders: { orderId: string; category: string; boxHeight: number; productName: string }[];
+}
+
+export interface RunAllocationResult {
+  allocated: number;
+  skipped: number;
+  skippedOrders: string[];
+}
+
 export interface SlotSearch {
   location: { shelfCode: string; level: number; slot: number };
   count: number;

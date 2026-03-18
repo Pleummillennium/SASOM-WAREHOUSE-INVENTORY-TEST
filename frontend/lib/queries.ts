@@ -1,6 +1,30 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from './api';
-import type { OrderLocation, ShelfDetail, ShelfSummary, SlotSearch } from './types';
+import type { AllocationStats, OrderLocation, RunAllocationResult, ShelfDetail, ShelfSummary, SlotSearch } from './types';
+
+export function useAllocationStats() {
+  return useQuery<AllocationStats>({
+    queryKey: ['allocation', 'stats'],
+    queryFn: async () => {
+      const res = await api.get<{ success: boolean; data: AllocationStats }>('/api/allocate/stats');
+      return res.data.data;
+    },
+  });
+}
+
+export function useRunAllocation() {
+  const queryClient = useQueryClient();
+  return useMutation<RunAllocationResult>({
+    mutationFn: async () => {
+      const res = await api.post<{ success: boolean; data: RunAllocationResult }>('/api/allocate/run');
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allocation'] });
+      queryClient.invalidateQueries({ queryKey: ['shelves'] });
+    },
+  });
+}
 
 export function useShelves() {
   return useQuery<ShelfSummary[]>({

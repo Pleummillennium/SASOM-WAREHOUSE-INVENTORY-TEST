@@ -4,6 +4,21 @@
 
 ---
 
+## Features Beyond Requirements
+
+สิ่งที่เพิ่มเติมจาก requirement หลัก:
+
+| Feature | รายละเอียด |
+|---------|-----------|
+| **Run Allocation Button** | กด button ใน Dashboard เพื่อ trigger allocation algorithm ได้เลย พร้อม toast notification แสดงผล allocated/skipped แบบ real-time |
+| **Allocation Stats Dashboard** | แสดง 4 stat cards: Total Shelves, Orders Allocated, Skipped Orders, Allocation Rate (%) |
+| **Per-Category Breakdown** | Progress bar แสดง allocation rate แยกตาม category พร้อมจำนวน skipped ของแต่ละ category |
+| **Skipped Orders Panel** | คลิก "Skipped Orders" card เพื่อดูรายการ orders ที่ warehouse เต็มแบบละเอียด (orderId, product, category, boxHeight) |
+| **Slot Visual Map** | Shelf detail แสดง grid 7×50 พร้อม color coding ตาม fill level — hover เพื่อดู orders ภายใน slot |
+| **GET /api/allocate/stats** | Endpoint ใหม่ที่ return allocation summary + per-category breakdown + skipped orders list |
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -104,6 +119,7 @@ npm run dev     # http://localhost:3000
 |--------|------|-------------|
 | `GET` | `/api/health` | Health check |
 | `POST` | `/api/allocate/run` | Run allocation algorithm on all orders |
+| `GET` | `/api/allocate/stats` | Allocation summary: total, allocated, skipped, per-category breakdown |
 | `GET` | `/api/search/order/:orderId` | Find location of an order (e.g. `ORD00001`) |
 | `GET` | `/api/search/slot?shelf=C&level=1&slot=1` | List orders in a specific slot |
 | `GET` | `/api/shelves` | List all shelves with usage stats |
