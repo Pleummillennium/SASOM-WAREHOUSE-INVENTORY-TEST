@@ -154,12 +154,12 @@ slot_allocations → การจอง (orderId → shelf + level + slot)
 - [x] **3.3** รัน allocation บน dataset จริง บันทึกผลลง `slot_allocations` (allocated: 7,890 / skipped: 2,110)
 
 ### Phase 4 — Backend API
-- [ ] **4.1** Setup Express app + middleware (cors, json, error handler)
-- [ ] **4.2** สร้าง route: `POST /api/allocate/run`
-- [ ] **4.3** สร้าง route: `GET /api/search/order/:orderId`
-- [ ] **4.4** สร้าง route: `GET /api/search/slot`
-- [ ] **4.5** สร้าง route: `GET /api/shelves` และ `/api/shelves/:shelfCode`
-- [ ] **4.6** ทดสอบ API ด้วย Postman หรือ curl
+- [x] **4.1** Setup Express app + middleware (cors, json, error handler)
+- [x] **4.2** สร้าง route: `POST /api/allocate/run`
+- [x] **4.3** สร้าง route: `GET /api/search/order/:orderId`
+- [x] **4.4** สร้าง route: `GET /api/search/slot`
+- [x] **4.5** สร้าง route: `GET /api/shelves` และ `/api/shelves/:shelfCode`
+- [x] **4.6** ทดสอบ API ด้วย curl — ทุก endpoint ผ่าน
 
 ### Phase 5 — Frontend
 - [ ] **5.1** Layout หลัก: Sidebar + Header
