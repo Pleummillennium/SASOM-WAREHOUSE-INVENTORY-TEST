@@ -8,7 +8,12 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "eslint src/**/*.ts",
-    "format": "prettier --write src/**/*.ts"
+    "format": "prettier --write src/**/*.ts",
+    "db:migrate": "prisma migrate dev --name init",
+    "db:generate": "tsx src/scripts/generate-orders.ts",
+    "db:seed-shelves": "tsx src/scripts/seed-shelves.ts",
+    "db:import-orders": "tsx src/scripts/import-orders.ts",
+    "db:setup": "npm run db:migrate && npm run db:generate && npm run db:seed-shelves && npm run db:import-orders"
   },
   "keywords": [],
   "author": "",
@@ -18,6 +23,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.5.0",
+    "@types/pg": "^8.18.0",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
     "@typescript-eslint/parser": "^8.57.1",
     "eslint": "^10.0.3",
@@ -29,9 +35,12 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "pg": "^8.20.0",
     "prisma": "^7.5.0"
   }
 }

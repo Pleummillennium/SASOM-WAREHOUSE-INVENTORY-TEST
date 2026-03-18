@@ -136,13 +136,13 @@ slot_allocations → การจอง (orderId → shelf + level + slot)
 - [x] **1.2** Init backend: `npm init`, TypeScript config, ESLint, Prettier
 - [x] **1.3** Init frontend: `npx create-next-app` + Tailwind + shadcn/ui
 - [x] **1.4** Setup Docker Compose สำหรับ PostgreSQL
-- [ ] **1.5** Setup Prisma: `prisma init`, เขียน schema, รัน migration *(init + schema เสร็จแล้ว — รัน migration รอ DB up ใน Phase 2)*
+- [x] **1.5** Setup Prisma: `prisma init`, เขียน schema, รัน migration
 
 ### Phase 2 — Data & Seed
-- [ ] **2.1** Download Orders-10000 Dataset
-- [ ] **2.2** เขียน seed script สำหรับ shelf config (hardcode ตามโจทย์)
-- [ ] **2.3** เขียน import script สำหรับ orders จาก CSV/JSON
-- [ ] **2.4** ทดสอบว่า data ใน DB ถูกต้อง
+- [x] **2.1** Generate Orders-10000 Dataset (`generate-orders.ts` → `data/orders.csv`)
+- [x] **2.2** เขียน seed script สำหรับ shelf config (`seed-shelves.ts`)
+- [x] **2.3** เขียน import script สำหรับ orders จาก CSV (`import-orders.ts`)
+- [x] **2.4** ทดสอบว่า data ใน DB ถูกต้อง
 
 ### Phase 3 — Allocation Algorithm (Core Logic)
 - [ ] **3.1** เขียน `allocationService.ts` — logic หลัก
