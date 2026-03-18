@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id          Int     @id @default(autoincrement())
+  orderId     String  @unique
+  productName String
+  price       Float
+  category    String
+  boxHeight   Float
+
+  allocation SlotAllocation?
+
+  @@map("orders")
+}
+
+model Shelf {
+  id           Int     @id @default(autoincrement())
+  shelfCode    String  @unique
+  category     String
+  minBoxHeight Float?
+  maxBoxHeight Float?
+  totalLevels  Int     @default(7)
+  slotHeight   Float
+  totalSlots   Int     @default(50)
+
+  allocations SlotAllocation[]
+
+  @@map("shelves")
+}
+
+model SlotAllocation {
+  id          Int      @id @default(autoincrement())
+  orderId     String   @unique
+  shelfCode   String
+  level       Int
+  slot        Int
+  allocatedAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [orderId])
+  shelf Shelf @relation(fields: [shelfCode], references: [shelfCode])
+
+  @@map("slot_allocations")
+}
