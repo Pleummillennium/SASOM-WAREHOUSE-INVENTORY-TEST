@@ -16,7 +16,7 @@ function getEligibleShelves(shelves: Shelf[], category: string, boxHeight: numbe
   return shelves.filter((shelf) => {
     if (shelf.category !== category) return false;
     if (shelf.minBoxHeight !== null && boxHeight < shelf.minBoxHeight) return false;
-    if (shelf.maxBoxHeight !== null && boxHeight > shelf.maxBoxHeight) return false;
+    if (shelf.maxBoxHeight !== null && boxHeight >= shelf.maxBoxHeight) return false;
     return true;
   });
 }
@@ -83,7 +83,7 @@ function makeShelf(
 const mockShelves: Shelf[] = [
   makeShelf('A', 'shoes', 16, null, 48),   // shoes ≥16
   makeShelf('B', 'shoes', 16, null, 48),
-  makeShelf('C', 'shoes', null, 15, 48),   // shoes <16
+  makeShelf('C', 'shoes', null, 16, 48),   // shoes <16 (exclusive upper bound)
   makeShelf('LBA', 'bags', null, null, 50),
 ];
 
