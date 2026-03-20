@@ -54,13 +54,13 @@ async function main() {
     });
   }
 
-  // Shoes < 16 cm → Shelf C–V
+  // Shoes < 16 cm → Shelf C–V (maxBoxHeight: 16 is exclusive, meaning boxHeight < 16)
   for (const code of generateShelfCodes('C', 'V')) {
     shelves.push({
       shelfCode: code,
       category: 'shoes',
       minBoxHeight: null,
-      maxBoxHeight: 15,
+      maxBoxHeight: 16,
       totalLevels: 7,
       slotHeight: 48,
       totalSlots: 50,
@@ -106,6 +106,7 @@ async function main() {
     });
   }
 
+  await prisma.slotAllocation.deleteMany();
   await prisma.shelf.deleteMany();
   await prisma.shelf.createMany({ data: shelves });
 

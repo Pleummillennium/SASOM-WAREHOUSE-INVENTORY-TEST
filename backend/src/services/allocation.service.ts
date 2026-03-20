@@ -11,7 +11,8 @@ function getEligibleShelves(shelves: Shelf[], category: string, boxHeight: numbe
   return shelves.filter((shelf) => {
     if (shelf.category !== category) return false;
     if (shelf.minBoxHeight !== null && boxHeight < shelf.minBoxHeight) return false;
-    if (shelf.maxBoxHeight !== null && boxHeight > shelf.maxBoxHeight) return false;
+    // maxBoxHeight is an exclusive upper bound (e.g. 16 means boxHeight < 16)
+    if (shelf.maxBoxHeight !== null && boxHeight >= shelf.maxBoxHeight) return false;
     return true;
   });
 }

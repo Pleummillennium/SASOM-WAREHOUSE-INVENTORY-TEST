@@ -11,29 +11,61 @@ interface OrderRow {
   boxHeight: number;
 }
 
+function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let i = 0;
+  while (i <= line.length) {
+    if (line[i] === '"') {
+      // Quoted field — handle "" as escaped quote (RFC 4180)
+      let j = i + 1;
+      let value = '';
+      while (j < line.length) {
+        if (line[j] === '"' && line[j + 1] === '"') {
+          value += '"'; // escaped quote
+          j += 2;
+        } else if (line[j] === '"') {
+          j++; // closing quote
+          break;
+        } else {
+          value += line[j];
+          j++;
+        }
+      }
+      fields.push(value);
+      i = j + 1; // skip comma
+    } else {
+      // Unquoted field
+      let j = i;
+      while (j < line.length && line[j] !== ',') j++;
+      fields.push(line.slice(i, j));
+      i = j + 1;
+    }
+  }
+  return fields;
+}
+
 function parseCsv(filePath: string): OrderRow[] {
   const content = fs.readFileSync(filePath, 'utf-8');
   const lines = content.trim().split('\n');
   const [, ...rows] = lines; // skip header
 
-  return rows.map((line) => {
-    // Handle quoted fields (productName may contain commas)
-    const match = line.match(/^([^,]+),"([^"]+)",([^,]+),([^,]+),([^,]+)$/);
-    if (!match) throw new Error(`Cannot parse line: ${line}`);
+  return rows.map((line, idx) => {
+    const fields = parseCsvLine(line.trim());
+    if (fields.length !== 5) throw new Error(`Line ${idx + 2}: expected 5 fields, got ${fields.length}: ${line}`);
 
-    const [, orderId, productName, price, category, boxHeight] = match;
+    const [orderId, productName, price, category, boxHeight] = fields;
     return {
       orderId: orderId.trim(),
       productName: productName.trim(),
-      price: parseFloat(price),
+      price: parseFloat(price.replace(/"/g, '')),
       category: category.trim(),
-      boxHeight: parseFloat(boxHeight),
+      boxHeight: parseFloat(boxHeight.replace(/"/g, '')),
     };
   });
 }
 
 async function main() {
-  const csvPath = path.join(__dirname, '../../data/orders.csv');
+  const csvPath = path.join(__dirname, '../../data/ORDERS-10000-DATASET.csv');
 
   if (!fs.existsSync(csvPath)) {
     console.error(`Dataset not found at ${csvPath}`);

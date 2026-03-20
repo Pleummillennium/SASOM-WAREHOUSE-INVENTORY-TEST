@@ -77,7 +77,15 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 docker compose up -d
 ```
 
-### 4. Setup database (migrate + seed + import)
+### 4. วาง Dataset
+
+วางไฟล์ dataset ที่ได้รับมาไว้ที่:
+
+```
+backend/data/ORDERS-10000-DATASET.csv
+```
+
+### 5. Setup database (migrate + seed + import)
 
 ```bash
 cd backend
@@ -86,25 +94,24 @@ npm run db:setup
 
 This runs in order:
 1. `prisma migrate dev` — create tables
-2. `generate-orders.ts` — generate 10,000 mock orders → `data/orders.csv`
-3. `seed-shelves.ts` — seed 30 shelf configurations
-4. `import-orders.ts` — import orders into DB
+2. `seed-shelves.ts` — seed 30 shelf configurations
+3. `import-orders.ts` — import orders from `data/ORDERS-10000-DATASET.csv` into DB
 
-### 5. Run allocation algorithm
+### 6. Run allocation algorithm
 
 ```bash
 cd backend
 npm run allocate
 ```
 
-### 6. Start backend
+### 7. Start backend
 
 ```bash
 cd backend
 npm run dev     # http://localhost:3001
 ```
 
-### 7. Start frontend
+### 8. Start frontend
 
 ```bash
 cd frontend
@@ -186,7 +193,6 @@ Multiple orders can share a slot as long as the cumulative `boxHeight` ≤ `slot
 │   │   ├── services/
 │   │   │   └── allocation.service.ts
 │   │   ├── scripts/
-│   │   │   ├── generate-orders.ts
 │   │   │   ├── seed-shelves.ts
 │   │   │   ├── import-orders.ts
 │   │   │   ├── run-allocation.ts
@@ -220,7 +226,7 @@ Multiple orders can share a slot as long as the cumulative `boxHeight` ≤ `slot
 |---------|-------------|
 | `npm run dev` | Start dev server with hot-reload |
 | `npm run build` | Compile TypeScript |
-| `npm run db:setup` | Full DB setup (migrate + generate + seed + import) |
+| `npm run db:setup` | Full DB setup (migrate + seed + import) |
 | `npm run db:migrate` | Run Prisma migrations |
 | `npm run db:seed-shelves` | Seed shelf configurations |
 | `npm run db:import-orders` | Import orders from CSV |
