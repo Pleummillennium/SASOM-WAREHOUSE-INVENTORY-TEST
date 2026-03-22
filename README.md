@@ -19,6 +19,60 @@
 
 ---
 
+## System Overview
+
+ระบบแบ่งออกเป็น 3 layer หลัก ทำงานร่วมกันดังนี้:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                        Browser                          │
+│                                                         │
+│   ┌─────────────┐  ┌──────────────┐  ┌──────────────┐   │
+│   │  Dashboard  │  │ Shelf Detail │  │ Search Page  │   │
+│   │  (page.tsx) │  │ /shelves/[x] │  │  /search     │   │
+│   └──────┬──────┘  └──────┬───────┘  └──────┬───────┘   │
+│          │                │                 │           │
+│          └────────────────┼─────────────────┘           │
+│                           │  TanStack Query + Axios     │
+└───────────────────────────┼─────────────────────────────┘
+                            │ HTTP (localhost:3001)
+┌───────────────────────────┼─────────────────────────────┐
+│              Backend (Express.js + TypeScript)          │
+│                           │                             │
+│   ┌───────────────────────▼─────────────────────────┐   │
+│   │                  Routes Layer                   │   │
+│   │  /api/allocate   /api/shelves   /api/search     │   │
+│   └───────────────────────┬─────────────────────────┘   │
+│                           │                             │
+│   ┌───────────────────────▼─────────────────────────┐   │
+│   │              allocation.service.ts              │   │
+│   │   (core algorithm: filter → sort → pack slots)  │   │
+│   └───────────────────────┬─────────────────────────┘   │
+│                           │  Prisma ORM                 │
+└───────────────────────────┼─────────────────────────────┘
+                            │
+┌───────────────────────────┼─────────────────────────────┐
+│              PostgreSQL (Docker Container)              │
+│                           │                             │
+│   ┌──────────┐  ┌─────────▼──────┐  ┌───────────────┐   │
+│   │  Shelf   │  │    Order       │  │ SlotAllocation│   │
+│   │ (config) │  │ (10,000 rows)  │  │ (result rows) │   │
+│   └──────────┘  └────────────────┘  └───────────────┘   │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+1. **Setup** — `db:setup` runs migrate → seed shelves → import 10,000 orders from CSV into DB
+2. **Allocation** — `POST /api/allocate/run` triggers `allocation.service.ts` ซึ่ง:
+   - Clear allocations เก่าทั้งหมด
+   - Load shelves (sorted A→Z) และ orders (sorted by orderId ASC) จาก DB
+   - วน loop assign แต่ละ order ไปยัง slot ที่เหมาะสม (in-memory)
+   - Bulk insert ผลลัพธ์กลับเข้า DB ทีละ 500 rows
+3. **Query** — Frontend fetch ข้อมูลผ่าน TanStack Query → แสดงผลบน UI แบบ real-time
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -164,14 +218,55 @@ curl -X POST http://localhost:3001/api/allocate/run
 
 ## Allocation Algorithm
 
-Priority order when assigning a slot:
+### Priority Order
 
-1. **Category** must match + height condition must pass
-2. **Level** 1 → 7 (bottom to top)
-3. **Shelf** alphabetical (A → B → C → ...)
-4. **Slot** 1 → 50
+เมื่อ assign order แต่ละใบ ระบบจะหา slot แรกที่ผ่านเงื่อนไขตามลำดับต่อไปนี้:
 
-Multiple orders can share a slot as long as the cumulative `boxHeight` ≤ `slotHeight`.
+```
+สำหรับแต่ละ order (เรียงตาม orderId ASC):
+  1. หา eligible shelves → category ตรง + height condition ผ่าน
+  2. วน Level 1 → 7  (ล่างสุดก่อน)
+     วน Shelf A → Z  (alphabetical)
+       วน Slot 1 → 50
+         ถ้า usedHeight[slot] + boxHeight ≤ slotHeight → assign แล้ว break
+  3. ถ้าไม่มี slot ว่างเลย → skip order นั้น
+```
+
+### Height Eligibility Rules
+
+| Category | Shelf | เงื่อนไข |
+|----------|-------|---------|
+| Shoes | A, B | `boxHeight >= 16` cm |
+| Shoes | C – V | `boxHeight < 16` cm |
+| Bags | LBA – LBC | ไม่มีเงื่อนไขความสูง |
+| Collectibles | AA – AC | ไม่มีเงื่อนไขความสูง |
+| Apparel | AD – AE | ไม่มีเงื่อนไขความสูง |
+
+### Slot Packing
+
+หนึ่ง slot รับได้หลาย order พร้อมกัน โดย:
+
+```
+usedHeight[slot] + newOrder.boxHeight ≤ shelf.slotHeight  →  ใส่ได้
+```
+
+ตัวอย่าง — Shelf A (slotHeight = 48 cm):
+```
+Slot A-L1-1:  Order#1 boxHeight=20  → used=20  ✓
+              Order#2 boxHeight=20  → used=40  ✓
+              Order#3 boxHeight=10  → used=50  ✗ (50 > 48) → ต้องหา slot ถัดไป
+```
+
+### Re-run Behavior
+
+เมื่อกด **Run Allocation** ซ้ำ:
+- ลบ `SlotAllocation` ทั้งหมดก่อน (clean slate)
+- รัน algorithm ใหม่ตั้งแต่ต้น
+- ผลลัพธ์จะเหมือนเดิมเสมอ เพราะ orders และ shelves ไม่เปลี่ยน (deterministic)
+
+### Why Orders Get Skipped
+
+Order จะถูก skip เมื่อ warehouse เต็มจริง ๆ คือทุก slot ของ eligible shelves มี `usedHeight` เต็มแล้ว ไม่มีที่ว่างพอสำหรับ `boxHeight` ของ order นั้น
 
 ---
 
@@ -215,6 +310,94 @@ Multiple orders can share a slot as long as the cumulative `boxHeight` ≤ `slot
         ├── queries.ts
         └── types.ts
 ```
+
+---
+
+## Troubleshooting
+
+### Docker / PostgreSQL
+
+**ปัญหา:** `docker compose up -d` แล้ว port 5432 conflict
+```bash
+# ดูว่ามีอะไรใช้ port 5432 อยู่
+lsof -i :5432
+
+# ถ้าเป็น local PostgreSQL ให้หยุดก่อน (macOS)
+brew services stop postgresql
+```
+
+**ปัญหา:** Container ขึ้นแล้วแต่ connect ไม่ได้
+```bash
+# ตรวจสอบ container status
+docker compose ps
+
+# ดู log ของ postgres container
+docker compose logs db
+```
+
+---
+
+### Database Setup
+
+**ปัญหา:** `npm run db:setup` แล้วเจอ migration error
+```bash
+# Reset แล้วรันใหม่ทั้งหมด
+cd backend
+npx prisma migrate reset   # ลบ DB แล้วสร้างใหม่
+npm run db:setup
+```
+
+**ปัญหา:** Import orders แล้วได้ 0 rows หรือ error
+- ตรวจสอบว่าไฟล์อยู่ที่ `backend/data/ORDERS-10000-DATASET.csv` (ตรง path)
+- ตรวจสอบว่า CSV มี header row: `orderId,category,boxHeight`
+- ตรวจสอบ encoding ของไฟล์ต้องเป็น UTF-8
+
+---
+
+### Backend Server
+
+**ปัญหา:** `npm run dev` แล้ว port 3001 conflict
+```bash
+# หา process ที่ใช้ port 3001
+lsof -i :3001
+
+# Kill process นั้น
+kill -9 <PID>
+```
+
+**ปัญหา:** `Cannot find module` หรือ TypeScript error
+```bash
+cd backend
+rm -rf node_modules
+npm install
+npm run dev
+```
+
+---
+
+### Frontend
+
+**ปัญหา:** หน้า Dashboard ขึ้นแต่ข้อมูลไม่แสดง / แสดง error
+- ตรวจสอบว่า backend รันอยู่ที่ `http://localhost:3001`
+- ตรวจสอบไฟล์ `frontend/.env.local` มี `NEXT_PUBLIC_API_URL=http://localhost:3001`
+- เปิด Browser DevTools → Network tab ดูว่า API call ไป URL ไหนและ response เป็นอะไร
+
+**ปัญหา:** `npm run dev` ของ frontend แล้ว error ด้าน dependency
+```bash
+cd frontend
+rm -rf node_modules .next
+npm install
+npm run dev
+```
+
+---
+
+### Allocation
+
+**ปัญหา:** กด Run Allocation แล้วได้ 0 allocated
+- ตรวจสอบว่า import orders สำเร็จแล้ว (`npm run db:import-orders`)
+- ตรวจสอบว่า seed shelves สำเร็จแล้ว (`npm run db:seed-shelves`)
+- ลองเรียก `GET /api/shelves` และ `GET /api/allocate/stats` ดูตรง ๆ
 
 ---
 
