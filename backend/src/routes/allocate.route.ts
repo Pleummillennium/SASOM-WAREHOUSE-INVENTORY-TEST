@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { runAllocation } from '../services/allocation.service';
+import { runAllocation, getLatestRunStatus } from '../services/allocation.service';
 import prisma from '../lib/prisma';
 
 const router = Router();
@@ -53,6 +53,30 @@ router.get('/stats', async (_req, res, next) => {
         skippedOrders,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/allocate/status
+// ใช้ดูสถานะของ allocation run ล่าสุด
+// สำคัญ: ถ้า server restart แล้วเจอ status = RUNNING หมายความว่า
+// server crash กลางทาง ข้อมูลยังอยู่ครบ (transaction rollback แล้ว)
+// แต่ frontend ควรแสดง warning ให้ user รู้ว่าต้องกด Run ใหม่
+router.get('/status', async (_req, res, next) => {
+  try {
+    const latest = await getLatestRunStatus();
+
+    // ถ้า server เพิ่ง restart มาแล้วเจอ RUNNING = crash กลางทาง
+    // ตรวจจับด้วยการดูว่า startedAt นานเกิน 10 นาทีแล้วยังเป็น RUNNING อยู่
+    // (ปกติ allocation ไม่ควรใช้เวลาเกิน 10 นาที)
+    let isStale = false;
+    if (latest?.status === 'RUNNING') {
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      isStale = latest.startedAt < tenMinutesAgo;
+    }
+
+    res.json({ success: true, data: { run: latest, isStale } });
   } catch (err) {
     next(err);
   }

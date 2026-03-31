@@ -48,3 +48,18 @@ model SlotAllocation {
 
   @@map("slot_allocations")
 }
+
+// ติดตามสถานะของการรัน Allocation แต่ละครั้ง
+// ใช้เพื่อ detect ว่า server crash ระหว่างรันหรือเปล่า
+// ถ้า restart มาแล้วเห็น status = RUNNING แสดงว่า crash กลางทาง
+model AllocationRun {
+  id         Int       @id @default(autoincrement())
+  status     String    // RUNNING | DONE | FAILED
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  allocated  Int?
+  skipped    Int?
+  error      String?   // เก็บ error message ถ้า status = FAILED
+
+  @@map("allocation_runs")
+}
