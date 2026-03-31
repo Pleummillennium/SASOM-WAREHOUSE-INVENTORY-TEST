@@ -187,6 +187,7 @@ npm run dev     # http://localhost:3000
 | `POST` | `/api/allocate/run` | Run allocation algorithm on all orders |
 | `GET` | `/api/allocate/stats` | Allocation summary: total, allocated, skipped, per-category breakdown |
 | `GET` | `/api/allocate/status` | สถานะของ run ล่าสุด (`RUNNING` / `DONE` / `FAILED`) พร้อม `isStale` flag |
+| `GET` | `/api/allocate/export` | Download รายงาน allocation ทั้งหมดเป็น CSV (allocated + skipped) |
 | `GET` | `/api/search/order/:orderId` | Find location of an order (e.g. `ORD00001`) |
 | `GET` | `/api/search/slot?shelf=C&level=1&slot=1` | List orders in a specific slot |
 | `GET` | `/api/shelves` | List all shelves with usage stats |

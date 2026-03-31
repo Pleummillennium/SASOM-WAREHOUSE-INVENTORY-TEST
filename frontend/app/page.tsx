@@ -46,7 +46,10 @@ export default function DashboardPage() {
           <h2 className="text-2xl font-bold">Warehouse Dashboard</h2>
           <p className="text-zinc-500 text-sm mt-1">Real-time shelf allocation overview</p>
         </div>
-        <RunAllocationButton />
+        <div className="flex items-center gap-2">
+          <ExportCsvButton />
+          <RunAllocationButton />
+        </div>
       </div>
 
       {/* Summary stats */}
@@ -171,6 +174,24 @@ export default function DashboardPage() {
         );
       })}
     </div>
+  );
+}
+
+function ExportCsvButton() {
+  const handleExport = () => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+    // เปิด URL ตรงๆ ให้ browser จัดการ download เอง
+    // ไม่ใช้ fetch+blob เพราะ browser handle Content-Disposition: attachment ได้โดยตรง
+    window.open(`${baseUrl}/api/allocate/export`, '_blank');
+  };
+
+  return (
+    <button
+      onClick={handleExport}
+      className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 transition-colors"
+    >
+      Export CSV
+    </button>
   );
 }
 
