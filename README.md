@@ -16,6 +16,10 @@
 | **Skipped Orders Panel** | คลิก "Skipped Orders" card เพื่อดูรายการ orders ที่ warehouse เต็มแบบละเอียด (orderId, product, category, boxHeight) |
 | **Slot Visual Map** | Shelf detail แสดง grid 7×50 พร้อม color coding ตาม fill level — hover เพื่อดู orders ภายใน slot |
 | **GET /api/allocate/stats** | Endpoint ใหม่ที่ return allocation summary + per-category breakdown + skipped orders list |
+| **Allocation Run Tracking** | ทุก run จะถูกบันทึกสถานะ (`RUNNING` / `DONE` / `FAILED`) ใน DB — ถ้า server crash กลางทางจะตรวจจับได้ทันทีเมื่อ restart |
+| **Atomic Allocation** | Delete + Insert ทั้งหมดอยู่ใน DB Transaction เดียว — ถ้า crash กลางทาง Postgres rollback อัตโนมัติ ไม่มี partial state |
+| **CSV Validation** | ตรวจสอบ format และค่าทุก row ก่อน import เก็บทุก error แล้ว report พร้อมกัน ไม่แตะ DB จนกว่าทุก row จะผ่าน |
+| **GET /api/allocate/status** | Endpoint ดูสถานะ run ล่าสุด พร้อม `isStale` flag เตือนถ้า server crash กลางทาง |
 
 ---
 
@@ -54,21 +58,22 @@
 ┌───────────────────────────┼─────────────────────────────┐
 │              PostgreSQL (Docker Container)              │
 │                           │                             │
-│   ┌──────────┐  ┌─────────▼──────┐  ┌───────────────┐   │
-│   │  Shelf   │  │    Order       │  │ SlotAllocation│   │
-│   │ (config) │  │ (10,000 rows)  │  │ (result rows) │   │
-│   └──────────┘  └────────────────┘  └───────────────┘   │
-└─────────────────────────────────────────────────────────┘
+│   ┌──────────┐  ┌───────────────┐  ┌───────────────┐  ┌────────────────┐  │
+│   │  Shelf   │  │    Order      │  │ SlotAllocation│  │ AllocationRun  │  │
+│   │ (config) │  │ (10,000 rows) │  │ (result rows) │  │ (run status)   │  │
+│   └──────────┘  └───────────────┘  └───────────────┘  └────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Data Flow
 
 1. **Setup** — `db:setup` runs migrate → seed shelves → import 10,000 orders from CSV into DB
 2. **Allocation** — `POST /api/allocate/run` triggers `allocation.service.ts` ซึ่ง:
-   - Clear allocations เก่าทั้งหมด
+   - สร้าง `AllocationRun` record ด้วย status `RUNNING`
    - Load shelves (sorted A→Z) และ orders (sorted by orderId ASC) จาก DB
    - วน loop assign แต่ละ order ไปยัง slot ที่เหมาะสม (in-memory)
-   - Bulk insert ผลลัพธ์กลับเข้า DB ทีละ 500 rows
+   - ห่อ delete เก่า + bulk insert ผลลัพธ์ทั้งหมดใน **DB Transaction เดียว**
+   - อัปเดต `AllocationRun` เป็น `DONE` หรือ `FAILED` เมื่อจบ
 3. **Query** — Frontend fetch ข้อมูลผ่าน TanStack Query → แสดงผลบน UI แบบ real-time
 
 ---
@@ -181,6 +186,7 @@ npm run dev     # http://localhost:3000
 | `GET` | `/api/health` | Health check |
 | `POST` | `/api/allocate/run` | Run allocation algorithm on all orders |
 | `GET` | `/api/allocate/stats` | Allocation summary: total, allocated, skipped, per-category breakdown |
+| `GET` | `/api/allocate/status` | สถานะของ run ล่าสุด (`RUNNING` / `DONE` / `FAILED`) พร้อม `isStale` flag |
 | `GET` | `/api/search/order/:orderId` | Find location of an order (e.g. `ORD00001`) |
 | `GET` | `/api/search/slot?shelf=C&level=1&slot=1` | List orders in a specific slot |
 | `GET` | `/api/shelves` | List all shelves with usage stats |
@@ -260,9 +266,23 @@ Slot A-L1-1:  Order#1 boxHeight=20  → used=20  ✓
 ### Re-run Behavior
 
 เมื่อกด **Run Allocation** ซ้ำ:
-- ลบ `SlotAllocation` ทั้งหมดก่อน (clean slate)
+- ลบ `SlotAllocation` ทั้งหมดก่อน (clean slate) — อยู่ใน Transaction เดียวกับ insert ใหม่
 - รัน algorithm ใหม่ตั้งแต่ต้น
 - ผลลัพธ์จะเหมือนเดิมเสมอ เพราะ orders และ shelves ไม่เปลี่ยน (deterministic)
+
+### Crash Safety
+
+ระบบป้องกัน partial state จาก server crash ด้วย 2 กลไก:
+
+1. **DB Transaction** — delete เก่า + insert ใหม่ทั้งหมดอยู่ใน transaction เดียว ถ้า crash กลางทาง Postgres rollback อัตโนมัติ allocation เก่ายังอยู่ครบ
+2. **AllocationRun status tracking** — ทุก run สร้าง record ใน `allocation_runs` table ถ้า server restart แล้วยังเห็น `status = RUNNING` ที่เก่ากว่า 10 นาที = crash กลางทาง ให้กด Run ใหม่
+
+### Concurrent Run Guard
+
+ถ้ากด Run พร้อมกัน 2 คน request ที่ 2 จะได้รับ error:
+```
+Allocation is already running. Please wait for it to finish.
+```
 
 ### Why Orders Get Skipped
 
@@ -278,7 +298,8 @@ Order จะถูก skip เมื่อ warehouse เต็มจริง �
 ├── README.md
 ├── backend/
 │   ├── prisma/
-│   │   └── schema.prisma
+│   │   ├── schema.prisma          # models: Order, Shelf, SlotAllocation, AllocationRun
+│   │   └── migrations/
 │   ├── src/
 │   │   ├── lib/prisma.ts
 │   │   ├── routes/
@@ -349,8 +370,12 @@ npm run db:setup
 
 **ปัญหา:** Import orders แล้วได้ 0 rows หรือ error
 - ตรวจสอบว่าไฟล์อยู่ที่ `backend/data/ORDERS-10000-DATASET.csv` (ตรง path)
-- ตรวจสอบว่า CSV มี header row: `orderId,category,boxHeight`
+- ตรวจสอบว่า CSV มี header row: `orderId,productName,price,category,boxHeight`
 - ตรวจสอบ encoding ของไฟล์ต้องเป็น UTF-8
+
+**ปัญหา:** Import แล้วเจอ validation error เช่น `boxHeight must be > 0`
+- Script จะแสดง error ทุก row พร้อมกัน ไม่แตะ DB จนกว่าทุก row จะผ่าน
+- แก้ไข CSV ตาม error message แล้วรันใหม่ได้เลย data เดิมยังอยู่ครบ
 
 ---
 
