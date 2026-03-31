@@ -128,7 +128,7 @@ async function main() {
 
   if (!fs.existsSync(csvPath)) {
     console.error(`Dataset not found at ${csvPath}`);
-    console.error('Run: npx tsx src/scripts/generate-orders.ts first');
+    console.error('Please provide the CSV dataset at the expected path.');
     process.exit(1);
   }
 

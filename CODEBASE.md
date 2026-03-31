@@ -620,22 +620,29 @@ Process:
 
 #### `backend/src/scripts/import-orders.ts`
 
-**หน้าที่:** อ่าน `orders.csv` แล้ว bulk insert ลง DB
+**หน้าที่:** อ่าน `ORDERS-10000-DATASET.csv` แล้ว validate + bulk insert ลง DB
 
 ```
 Functions:
-  parseCsv(filePath)  → อ่าน CSV → parse แต่ละ row
-                        handle quoted fields (productName อาจมี comma)
-                        return OrderRow[]
-  main()              → deleteMany orders+allocations → batch insert
+  parseCsvLine(line)    → parse row เดียว handle quoted fields (productName อาจมี comma)
+  parseCsv(filePath)    → อ่าน CSV ทั้งหมด → validate ทุก row
+                          return { rows: OrderRow[], errors: string[] }
+  main()                → validate ก่อน ถ้าผ่านจึง import ใน transaction
 
 Process:
-  1. Check ว่า data/orders.csv มีอยู่
-  2. parseCsv → 10,000 rows
-  3. DELETE slot_allocations ก่อน (FK constraint)
-  4. DELETE orders
-  5. INSERT orders ทีละ 500 rows (BATCH_SIZE)
-  6. แสดง progress counter
+  1. Check ว่า data/ORDERS-10000-DATASET.csv มีอยู่
+  2. parseCsv → parse + validate ทุก row เก็บ errors ไว้ทั้งหมด
+     - ตรวจจำนวน column (ต้องได้ 5)
+     - ตรวจ orderId, productName, category ต้องไม่ว่าง
+     - ตรวจ price ต้องเป็นตัวเลข >= 0
+     - ตรวจ boxHeight ต้องเป็นตัวเลข > 0
+  3. ถ้ามี validation error → print ทั้งหมดแล้ว abort (ไม่แตะ DB)
+  4. ห่อใน Prisma transaction (timeout 60s):
+     - DELETE slot_allocations ก่อน (FK constraint)
+     - DELETE orders
+     - INSERT orders ทีละ 500 rows (BATCH_SIZE)
+  5. แสดง progress counter
+  6. ถ้า transaction fail → rollback ทั้งหมด DB กลับสู่ state เดิม
 ```
 
 ---
